@@ -1,0 +1,62 @@
+/* 动效库设计变量：两套主题（浅色无限画布 / 深色星空），字体，通用组件 */
+@font-face { font-family: NSC; font-weight: 500; src: url(../node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-500-normal.woff2) format("woff2"); }
+@font-face { font-family: NSC; font-weight: 700; src: url(../node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-700-normal.woff2) format("woff2"); }
+@font-face { font-family: NSC; font-weight: 900; src: url(../node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-900-normal.woff2) format("woff2"); }
+@font-face { font-family: Inter; font-weight: 500; src: url(../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: Inter; font-weight: 700; src: url(../node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: Inter; font-weight: 800; src: url(../node_modules/@fontsource/inter/files/inter-latin-800-normal.woff2) format("woff2"); }
+
+:root {
+  /* 强调色：蓝紫 */
+  --accent: #6A5BFF;
+  --accent-2: #A99EFF;      /* 渐变亮端 */
+  --accent-soft: rgba(106, 91, 255, .14);
+
+  /* 浅色：无限画布 */
+  --paper: #EFEFF3;
+  --paper-edge: #E2E2EA;
+  --dot: #C3C4D2;
+  --ink: #15151C;
+  --ink-2: #6B6E80;
+  --card: #FFFFFF;
+  --card-line: rgba(20, 20, 40, .06);
+  --card-dark: #1B1B22;
+
+  /* 深色：星空 / 数据 */
+  --night: #06060B;
+  --night-2: #0E0E1A;
+  --night-dot: #2A2A3A;
+  --glow: #8E7DFF;
+  --star: #E9E6FF;
+
+  --font: Inter, NSC, "PingFang SC", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; }
+body { font-family: var(--font); -webkit-font-smoothing: antialiased; }
+.mg-stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+.mg-stage.light { background: var(--paper); color: var(--ink); }
+.mg-stage.dark { background: var(--night); color: #fff; }
+.mg-fill { position: absolute; inset: 0; }
+.mg-abs { position: absolute; }
+canvas.mg-fill { width: 1920px; height: 1080px; }
+
+/* 文字：逐字模糊浮现（core/mg.js · Reveal） */
+.mg-title { font-weight: 700; letter-spacing: .01em; white-space: nowrap; line-height: 1.25; }
+.mg-title .c { display: inline-block; will-change: transform, filter, opacity; }
+.mg-stage.dark .mg-title .hl .c { text-shadow: 0 0 .35em rgba(142, 125, 255, .55); }
+
+/* 卡片 */
+.mg-card { position: absolute; background: var(--card); border-radius: 18px;
+  box-shadow: 0 1px 0 var(--card-line), 0 18px 50px rgba(30, 30, 70, .10), 0 2px 8px rgba(30, 30, 70, .05); }
+.mg-card.dark { background: var(--card-dark); color: #fff; box-shadow: 0 18px 50px rgba(10, 10, 30, .28); }
+.mg-pill { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 18px; border-radius: 20px;
+  font-weight: 600; font-size: 20px; white-space: nowrap; }
+
+/* 光标（core/mg.js · Cursor） */
+.mg-cursor { position: absolute; left: 0; top: 0; width: 40px; height: 40px; pointer-events: none; z-index: 50; }
+.mg-cursor .glow { position: absolute; left: -60px; top: -60px; width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(106, 91, 255, .35), rgba(106, 91, 255, 0) 65%); }
+.mg-cursor .ring { position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%;
+  border: 3px solid var(--accent); opacity: 0; }

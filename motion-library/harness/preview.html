@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动效预览器</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0b0b10; color: #e6e6f0; font: 14px/1.5 system-ui, sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; padding: 12px 16px; flex-wrap: wrap; }
+  select, button { background: #1b1b22; color: inherit; border: 1px solid #333; border-radius: 6px; padding: 6px 10px; font: inherit; }
+  input[type=range] { flex: 1; min-width: 200px; }
+  #wrap { width: min(100vw - 32px, 1600px); aspect-ratio: 16 / 9; margin: 0 16px; position: relative; overflow: hidden; border-radius: 8px; background: #000; }
+  iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+  #t { font-variant-numeric: tabular-nums; width: 70px; }
+</style>
+</head>
+<body>
+<header>
+  <select id="eff">
+    <option value="01-infinite-canvas">01 无限画布</option>
+    <option value="02-comment-morph">02 评论形变</option>
+    <option value="03-media-wall">03 封面墙筛选</option>
+    <option value="04-iso-dot-stats">04 立体点阵统计</option>
+  </select>
+  <button id="play">播放</button>
+  <input id="seek" type="range" min="0" max="10" step="any" value="0">
+  <span id="t">0.00s</span>
+</header>
+<div id="wrap"><iframe id="f"></iframe></div>
+<script>
+// 用法：在 motion-library 目录运行 `python3 -m http.server 8000`，打开 http://localhost:8000/harness/preview.html
+const f = document.getElementById('f'), seek = document.getElementById('seek'), tEl = document.getElementById('t'), eff = document.getElementById('eff');
+let playing = false, t0 = 0, start = 0;
+const fit = () => { f.style.transform = `scale(${document.getElementById('wrap').clientWidth / 1920})`; };
+addEventListener('resize', fit); fit();
+const draw = t => { tEl.textContent = t.toFixed(2) + 's'; seek.value = t; f.contentWindow.renderAt && f.contentWindow.renderAt(t); };
+function load() {
+  const q = new URLSearchParams(location.search).get('effect');
+  if (q && !load.done) eff.value = q;
+  load.done = true;
+  f.src = `../effects/${eff.value}/index.html`;
+  f.onload = () => f.contentWindow.ready.then(() => { seek.max = f.contentWindow.DURATION; draw(0); });
+}
+eff.onchange = load;
+seek.oninput = () => { playing = false; draw(+seek.value); };
+document.getElementById('play').onclick = () => { playing = !playing; t0 = +seek.value; start = performance.now(); if (playing) requestAnimationFrame(tick); };
+function tick(now) {
+  if (!playing) return;
+  let t = t0 + (now - start) / 1000;
+  if (t > +seek.max) { t = 0; t0 = 0; start = now; }
+  draw(t);
+  requestAnimationFrame(tick);
+}
+load();
+</script>
+</body>
+</html>

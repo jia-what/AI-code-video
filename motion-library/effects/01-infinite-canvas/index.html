@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>01 无限画布</title>
+<link rel="stylesheet" href="../../core/tokens.css">
+<style>
+.node { position: absolute; }
+.node > .in { position: relative; }
+.ccard { width: 720px; padding: 26px 30px; display: flex; gap: 20px; }
+.ccard .av { width: 64px; height: 64px; border-radius: 50%; flex: none; background: #2a43a8 url(../../assets/whalegirl.png) no-repeat; background-size: 150px auto; background-position: -43px -64px; }
+.ccard .nm { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 22px; color: var(--ink-2); }
+.ccard .lv { font: 700 14px Inter; color: #2fb36b; border: 2px solid #2fb36b; border-radius: 5px; padding: 0 5px; }
+.ccard .tx { font-weight: 500; font-size: 28px; margin-top: 8px; white-space: nowrap; }
+.ccard .tx b { color: var(--accent); font-weight: 600; }
+.ccard .meta { font: 500 18px Inter, NSC; color: #A0A3B5; margin-top: 10px; }
+.agent { width: 330px; padding: 22px 24px; }
+.agent h4 { font: 700 26px Inter, NSC; }
+.agent .sub { font: 500 17px NSC; color: #9DA0B8; margin: 4px 0 14px; display: flex; align-items: center; gap: 8px; }
+.agent .sub i { width: 9px; height: 9px; border-radius: 50%; background: #3BD27E; display: block; }
+.agent .row { display: flex; align-items: center; justify-content: space-between; height: 46px; font: 500 22px NSC; color: #E4E4F0; }
+.avnode { width: 150px; height: 150px; border-radius: 50%; background: #2a43a8 url(../../assets/whalegirl.png) no-repeat; background-size: 330px auto; background-position: -90px -120px;
+  box-shadow: 0 0 0 6px #fff, 0 18px 40px rgba(30,30,70,.18); }
+.label { font: 600 22px NSC; color: var(--ink-2); text-align: center; margin-top: 18px; white-space: nowrap; }
+.pill-accent { background: var(--accent); color: #fff; box-shadow: 0 10px 24px rgba(106,91,255,.35); }
+.mini { padding: 20px 24px; font: 600 22px NSC; white-space: nowrap; }
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 90px; margin-top: 14px; }
+.bars i { display: block; width: 26px; border-radius: 6px 6px 2px 2px; background: #D9D7FF; }
+.bars i.on { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="mg-stage light" id="stage"></div>
+<script type="module">
+import { mount, cue, seg, ease, clamp, Reveal, blurIn, Cursor } from '../../core/mg.js';
+import { InfiniteCanvas, camPath, Connector, Toggle } from './infinite-canvas.js';
+
+const stage = document.getElementById('stage');
+const ic = InfiniteCanvas(stage);
+const W = ic.world;
+
+// 在世界坐标 (x, y) 放一个元素；anchor 为中心。返回内层元素（用于 blurIn）
+function put(html, x, y, cls = '') {
+  const o = document.createElement('div');
+  o.className = 'node';
+  o.style.left = x + 'px'; o.style.top = y + 'px'; o.style.transform = 'translate(-50%,-50%)';
+  o.innerHTML = `<div class="in ${cls}">${html}</div>`;
+  W.appendChild(o);
+  return o.firstChild;
+}
+const comment = (txt) => `<div class="av"></div><div><div class="nm">某某的大肥鱼<span class="lv">LV2</span></div><div class="tx">${txt}</div><div class="meta">2 分钟前 · 赞 12 · 回复</div></div>`;
+
+// ===== 场景 A：标题 + 一条评论 =====
+const titleA = put('<div class="mg-title" style="font-size:84px">每条评论背后，都可能是一个 <span class="hl">AI</span></div>', 0, -170);
+const revA = Reveal(titleA.firstChild);
+const cardA = put(comment('<b>本鲸</b>来交作业了，这期讲得很扎实！（甩甩尾巴）'), 0, 70, 'mg-card ccard');
+
+// ===== 场景 B：节点图 =====
+const BX = 1640, BY = 290;
+const avatar = put('<div class="avnode"></div><div class="label">人设：鲸鱼娘</div>', BX - 470, BY - 150);
+const agent = put(`<h4>DeepSeek Agent</h4><div class="sub"><i></i>自动运行中</div>
+  <div class="row">找视频<span class="sw" id="sw1"></span></div>
+  <div class="row">读字幕<span class="sw" id="sw2"></span></div>
+  <div class="row">按人设发评论<span class="sw" id="sw3"></span></div>`, BX - 470, BY + 170, 'mg-card dark agent');
+const cardB = put(comment('<b>本鲸</b>来交作业了，这期讲得很扎实！'), BX + 330, BY + 10, 'mg-card ccard');
+cardB.style.width = '640px';
+const pill = put('<span class="mg-pill pill-accent">评论区里的鱼</span>', BX + 330, BY + 150);
+const capB = put('<div class="mg-title" style="font-size:60px">背后跑的，大多是 <span class="hl">AI Agent</span></div>', BX, BY + 430);
+const revB = Reveal(capB.firstChild);
+const sw = [1, 2, 3].map(i => Toggle(agent.querySelector('#sw' + i)));
+const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+Object.assign(svg.style, { position: 'absolute', left: '0', top: '0', overflow: 'visible' });
+W.insertBefore(svg, W.firstChild);
+const link1 = Connector(svg, BX - 470 + 82, BY - 170, BX + 330 - 330, BY - 5);
+const link2 = Connector(svg, BX - 470 + 168, BY + 170, BX + 330 - 330, BY + 25);
+
+// ===== 场景 C：拉远后看到的画布其它角落 =====
+const extras = [
+  put('<div style="font:700 26px NSC">B 站评论区沦陷实录</div><div style="font:500 18px NSC;color:#9DA0B8;margin-top:6px">第 1 周 · 样本 120 个视频</div>', -760, -560, 'mg-card mini'),
+  put('<div>每日新增</div><div class="bars"><i style="height:20%"></i><i style="height:28%"></i><i style="height:24%"></i><i style="height:46%"></i><i class="on" style="height:70%"></i><i class="on" style="height:100%"></i></div>', 2700, -360, 'mg-card mini'),
+  put('<div style="width:230px;height:230px;border-radius:18px;background:#2a43a8 url(../../assets/whalegirl.png) no-repeat;background-size:300px auto;background-position:-35px -60px"></div>', -820, 520, 'mg-card'),
+  put('<span>Vibe Coding 工具</span>', 700, -600, 'mg-card dark mini'),
+  put('<span class="mg-pill" style="background:#fff;box-shadow:0 8px 20px rgba(30,30,70,.08)">找视频 → 读字幕 → 发评论</span>', 2650, 720),
+  put('<div style="font:600 22px NSC;color:#6B6E80">“本鲸” “甩尾巴” “@主人 汇报”</div>', 300, 640, 'mg-card mini'),
+];
+// ===== 场景 D：下一个问题 =====
+const DX = 900, DY = 1250;
+const titleD = put('<div class="mg-title" style="font-size:100px">评论区里，到底有多少<span class="hl">鱼</span>？</div>', DX, DY);
+const revD = Reveal(titleD.firstChild);
+
+// ===== 时间轴 =====
+const cam = camPath([
+  { t: 0, x: 0, y: -40, z: 1.28 }, { t: 2.9, x: 0, y: -30, z: 1.14 },
+  { t: 4.1, x: BX - 60, y: BY + 60, z: 1.16 }, { t: 7.0, x: BX - 40, y: BY + 70, z: 1.2 },
+  { t: 8.2, x: 950, y: 260, z: .42 }, { t: 8.5, x: 950, y: 260, z: .42 },
+  { t: 9.5, x: DX, y: DY, z: 1.04 }, { t: 10.5, x: DX, y: DY, z: 1.1 },
+]);
+const s = (x, y, t) => ic.toScreen(cam(t), x, y);
+const tg3 = { x: BX - 470 + 120, y: BY + 170 + 72 };       // "按人设发评论"开关的世界坐标
+const cursorPath = [
+  { t: 0.9, x: 1560, y: 980 }, { t: 1.9, x: 1220, y: 700 },
+  { t: 2.5, x: s(150, 70, 2.6).x, y: s(150, 70, 2.6).y }, { t: 2.65, x: s(150, 70, 2.65).x, y: s(150, 70, 2.65).y, click: true },
+  { t: 4.3, x: 1100, y: 760 }, { t: 5.4, x: s(tg3.x, tg3.y, 5.5).x, y: s(tg3.x, tg3.y, 5.5).y },
+  { t: 5.55, x: s(tg3.x, tg3.y, 5.55).x, y: s(tg3.x, tg3.y, 5.55).y, click: true },
+  { t: 6.5, x: 1240, y: 760 }, { t: 8.3, x: 1000, y: 640 }, { t: 9.6, x: 1180, y: 700 },
+];
+const cursor = Cursor(stage);
+
+cue(0.15, 'air', { dur: .9 });
+cue(1.3, 'air', { dur: .6, gain: .6 });
+cue(2.65, 'mouse');
+cue(2.95, 'air', { dur: 1.2 });
+[3.8, 4.15, 4.5].forEach((t, i) => cue(t, 'tick', { pitch: 1 + i * .2 }));
+cue(4.7, 'air', { dur: .7, gain: .5 });
+cue(5.55, 'mouse'); cue(5.6, 'tick', { pitch: 1.6 });
+cue(5.85, 'sparkle');
+cue(6.35, 'pop', { pitch: 1.3 });
+cue(6.6, 'air', { dur: .8, gain: .7 });
+cue(7.1, 'air', { dur: 1.2 });
+cue(7.6, 'shimmer', { dur: 1.2 });
+cue(8.4, 'air', { dur: 1.1 });
+cue(9.2, 'swell', { dur: .5 }); cue(9.7, 'boom', { gain: .55 });
+
+function render(t) {
+  const c = cam(t);
+  const cur = cursor.at(t, cursorPath);
+  ic.render(t, { cam: c, cursor: cur });
+  revA(seg(t, .1, 1.2));
+  blurIn(cardA, seg(t, 1.25, 1.9));
+  cardA.style.boxShadow = t > 2.65 && t < 3.3 ? `0 0 0 ${3 * (1 - seg(t, 2.65, 3.3))}px rgba(106,91,255,.6), 0 18px 50px rgba(30,30,70,.10)` : '';
+  blurIn(avatar, seg(t, 3.75, 4.35));
+  blurIn(agent, seg(t, 4.1, 4.7));
+  link1(seg(t, 4.6, 5.3));
+  sw[0](1); sw[1](1); sw[2](seg(t, 5.55, 5.8));
+  link2(seg(t, 5.65, 6.2));
+  blurIn(cardB, seg(t, 5.8, 6.4));
+  blurIn(pill, seg(t, 6.3, 6.75), { y: 0, scale: .7 });
+  revB(seg(t, 6.55, 7.4));
+  extras.forEach((e, i) => blurIn(e, seg(t, 7.3 + i * .09, 7.9 + i * .09)));
+  revD(seg(t, 9.1, 10.1));
+}
+mount({ duration: 10.5, render });
+</script>
+</body>
+</html>

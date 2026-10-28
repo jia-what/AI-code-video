@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>03 封面墙筛选</title>
+<link rel="stylesheet" href="../../core/tokens.css">
+</head>
+<body>
+<div class="mg-stage light" id="stage">
+  <div class="mg-title mg-abs" id="q" style="left:960px; top:540px; transform:translate(-50%,-50%); font-size:100px">评论区里，到底有多少<span class="hl">鱼</span>？</div>
+</div>
+<script type="module">
+import { mount, cue, seg, ease, lerp, clamp, Reveal, blurIn, Cursor, makeCanvas, drawDotGrid, drawGlow, mixHex } from '../../core/mg.js';
+import { MediaWall, TabBar } from './media-wall.js';
+
+const stage = document.getElementById('stage');
+const { ctx } = makeCanvas(stage);
+stage.insertBefore(ctx.canvas, stage.firstChild);
+const rq = Reveal(document.getElementById('q'));
+const wallLayer = document.createElement('div');
+wallLayer.className = 'mg-fill';
+stage.appendChild(wallLayer);
+const wall = MediaWall(wallLayer, { cats: { ai: 80, food: 10, game: 10, fun: 10, life: 10 } });
+const TABS = [{ key: 'all', label: '120 个热门视频', first: true }, { key: 'ai', label: '科技 · AI 80' }, { key: 'food', label: '美食 10' },
+  { key: 'game', label: '游戏 10' }, { key: 'fun', label: '搞笑 10' }, { key: 'life', label: '生活 10' }];
+const bar = TabBar(stage, TABS, { top: 58 });
+const cursor = Cursor(stage);
+
+const CLICK = { ai: 2.2, food: 2.85, game: 3.4, fun: 3.95, life: 4.5 };
+let path;
+cue(0.2, 'air', { dur: .5, gain: .5 });
+cue(0.5, 'tickroll', { dur: 1.1, n: 44 });
+cue(0.55, 'air', { dur: .8, gain: .6 });
+Object.entries(CLICK).forEach(([k, t], i) => { cue(t, 'mouse'); cue(t + .05, 'tick', { pitch: 1 + i * .15 }); if (k !== 'ai') cue(t + .08, 'sparkle', { pitch: 1 + i * .1, n: 3 }); });
+cue(2.25, 'air', { dur: .6, gain: .35 });
+cue(5.3, 'swell', { dur: .9 });
+cue(6.2, 'boom', { gain: .45 }); cue(6.2, 'shimmer', { dur: 1 });
+
+function sel(cat, th) {
+  if (ctxT < CLICK.ai) return null;
+  if (cat === 'ai') return 1;
+  const grey = seg(ctxT, 2.25 + th.lag * .25, 2.6 + th.lag * .25);
+  const light = seg(ctxT, CLICK[cat] + th.lag * .12, CLICK[cat] + .35 + th.lag * .12);
+  return Math.max(1 - grey, light);
+}
+let ctxT = 0;
+function render(t) {
+  ctxT = t;
+  const dark = seg(t, 5.5, 6.4, ease.inOutCubic);
+  ctx.fillStyle = mixHex('#EFEFF3', '#06060B', dark);
+  ctx.fillRect(0, 0, 1920, 1080);
+  const cur = cursor.at(t, path);
+  if (dark < 1) drawGlow(ctx, cur.x + 8, cur.y + 10, 300, '106,91,255', .12 * (1 - dark));
+  drawDotGrid(ctx, { gap: 34, color: mixHex('#C3C4D2', '#1C1C2A', dark), spot: dark < .5 ? { x: cur.x + 8, y: cur.y + 10, r: 200, color: '#6A5BFF', k: .9 * (1 - dark * 2) } : null });
+  rq(seg(t, .15, .6), { out: true });
+  blurIn(bar.el, seg(t, .5, 1.1), { y: -16 });
+  bar.el.style.transform = `translateX(-50%) ${bar.el.style.transform}`;
+  bar.el.style.opacity = Math.min(+bar.el.style.opacity, 1 - seg(t, 5.3, 5.7));
+  bar.set('all', 0);
+  bar.els.all.style.background = '#2E2E3A';
+  for (const k of Object.keys(CLICK)) bar.set(k, seg(t, CLICK[k], CLICK[k] + .2));
+  wall.render(t, { inT: .5, sel, toDots: seg(t, 5.4, 6.3), scatter: seg(t, 6.0, 7.2) });
+  cursor.el.style.opacity = Math.min(+cursor.el.style.opacity, 1 - seg(t, 5.2, 5.6));
+}
+mount({
+  duration: 7.2, render,
+  prepare: async () => {
+    await document.fonts.ready;
+    wall.paint();
+    const c = k => { const b = bar.els[k].getBoundingClientRect(); return { x: b.x + b.width * .5, y: b.y + b.height * .62 }; };
+    path = [{ t: 1.5, x: 1560, y: 1000 }];
+    for (const [k, t] of Object.entries(CLICK)) { const p = c(k); path.push({ t: t - .12, x: p.x, y: p.y }, { t, x: p.x, y: p.y, click: true }); }
+    path.push({ t: 5.2, x: 1300, y: 640 });
+  },
+});
+</script>
+</body>
+</html>

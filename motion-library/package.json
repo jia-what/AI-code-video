@@ -1,0 +1,15 @@
+{
+  "name": "motion-library",
+  "version": "1.0.0",
+  "private": true,
+  "description": "可复用的 MG 动效库：无限画布、评论形变、封面墙筛选、立体点阵统计",
+  "type": "module",
+  "scripts": {
+    "preview": "python3 -m http.server 8000",
+    "render": "node harness/render.mjs"
+  },
+  "dependencies": {
+    "@fontsource/inter": "5.2.5",
+    "@fontsource/noto-sans-sc": "5.2.5"
+  }
+}

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>04 立体点阵统计</title>
+<link rel="stylesheet" href="../../core/tokens.css">
+<style>
+#legend { position: absolute; left: 960px; top: 58px; transform: translateX(-50%); font: 500 24px Inter, NSC; color: #8F90A8; white-space: nowrap; }
+#legend b { color: #B7AEFF; font-weight: 600; }
+#legend i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #9C8CFF; box-shadow: 0 0 10px #9C8CFF; margin: 0 8px 0 4px; vertical-align: -1px; }
+#num { position: absolute; left: 230px; top: 150px; font: 800 170px Inter; letter-spacing: -.02em; line-height: 1;
+  background: linear-gradient(100deg, #6C5CFF, #A99EFF 60%, #7B6BFF); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 28px rgba(110,92,255,.55)); white-space: nowrap; }
+#num.zero { background: none; color: #fff; filter: none; }
+#cap { position: absolute; left: 236px; top: 340px; font: 500 28px NSC; color: #A3A4BC; white-space: nowrap; }
+#pill { position: absolute; left: 236px; top: 340px; height: 48px; line-height: 48px; padding: 0 22px; border-radius: 24px; background: #1E1E28; color: #E6E6F0; font: 600 24px NSC; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="mg-stage dark" id="stage">
+  <div id="legend">每一点 = 1 条评论 · 每块 100 条 · <b><i></i>发光的 = 鱼</b> · 示例数据</div>
+  <div id="num" class="zero">0</div>
+  <div id="pill">第 1 天：一条鱼都没有</div>
+  <div id="cap">每 100 条评论里的鱼（示例数据）</div>
+</div>
+<script type="module">
+import { mount, cue, seg, ease, lerp, clamp, blurIn, Cursor, makeCanvas } from '../../core/mg.js';
+import { DotBlocks, drawLineChart, drawSpace, lerpCam } from './iso-dot-stats.js';
+
+const stage = document.getElementById('stage');
+const { ctx } = makeCanvas(stage);
+stage.insertBefore(ctx.canvas, stage.firstChild);
+const DATA = [0, .6, .3, 1.1, 2.2, 3.5, 5.2].map((v, i) => ({ label: `第 ${i + 1} 天`, value: v }));
+const blocks = DotBlocks(ctx, DATA);
+const camA = { tx: 0, ty: 0, tz: 0, dist: 1600, yaw: -.62, pitch: -.95, f: 1500, sx: 1000, sy: 560 };
+const camA2 = { ...camA, yaw: -.53, dist: 1500 };
+const camB = { tx: 0, ty: 0, tz: 0, dist: 1600, yaw: 0, pitch: -.52, f: 1500, sx: 960, sy: 870 };
+const cam = t => t < 3.9 ? lerpCam(camA, camA2, seg(t, 0, 3.9, ease.inOutSine)) : lerpCam(camA2, camB, seg(t, 3.9, 5.0, ease.inOutCubic));
+const IGN = k => 1.7 + k * .3;
+const HEAD = [5.0, 8.2];
+const head = t => { const h = seg(t, HEAD[0], HEAD[1]) * 6; const i = Math.floor(h); return Math.min(6, i + ease.inOutSine(h - i)); };
+
+const num = document.getElementById('num'), cap = document.getElementById('cap'), pill = document.getElementById('pill');
+const legend = document.getElementById('legend');
+const cursor = Cursor(stage, { theme: 'dark' });
+let points, drops, base, path;
+
+cue(0.1, 'air', { dur: .8 });
+cue(0.2, 'shimmer', { dur: 1.3 }); cue(0.3, 'tickroll', { dur: 1.0, n: 36 });
+cue(0.9, 'air', { dur: .5, gain: .4 });
+DATA.forEach((d, k) => { if (d.value > 0) cue(IGN(k), 'sparkle', { pitch: .9 + k * .08, n: Math.max(1, Math.round(d.value)) }); });
+cue(1.95, 'tick', { pitch: .8 });
+cue(3.85, 'air', { dur: 1.3 });
+for (let i = 0; i <= 6; i++) cue(HEAD[0] + i * (HEAD[1] - HEAD[0]) / 6, 'tick', { pitch: 1 + i * .12 });
+cue(HEAD[0], 'tickroll', { dur: HEAD[1] - HEAD[0], n: 60 });
+cue(HEAD[1] - .05, 'boom', { gain: .6 }); cue(HEAD[1], 'sparkle', { pitch: 1.2 });
+
+function render(t) {
+  const c = cam(t);
+  drawSpace(ctx, t);
+  blocks.render(t, c, { gather: seg(t, .1, 1.5), ignite: k => seg(t, IGN(k), IGN(k) + .35) });
+  const chart = seg(t, 4.9, 5.1);
+  if (t > 4.9) {
+    const h = head(t);
+    ctx.globalAlpha = chart;
+    drawLineChart(ctx, points, h, { base, drops, labelP: i => seg(h, i, i + .3) });
+    ctx.globalAlpha = 1;
+  }
+  blurIn(legend, seg(t, .8, 1.3), { y: -8 });
+  legend.style.transform = `translateX(-50%) ${legend.style.transform}`;
+  // 计数器：A 段是白色 0，B 段是随折线增长的百分比
+  if (t < 4.6) {
+    num.className = 'zero'; num.textContent = '0';
+    blurIn(num, seg(t, 1.9, 2.3) * (1 - seg(t, 3.7, 4.1)));
+    blurIn(pill, seg(t, 2.1, 2.5) * (1 - seg(t, 3.7, 4.1)), { y: 8 });
+    cap.style.opacity = 0;
+  } else {
+    const h = head(t), i = Math.floor(h);
+    const v = i >= 6 ? DATA[6].value : lerp(DATA[i].value, DATA[i + 1].value, h - i);
+    num.className = ''; num.textContent = v.toFixed(1) + '%';
+    blurIn(num, seg(t, 4.9, 5.3)); blurIn(cap, seg(t, 5.1, 5.5), { y: 8 });
+    pill.style.opacity = 0;
+  }
+  cursor.at(t, path);
+}
+mount({
+  duration: 10, render,
+  prepare: async () => {
+    const c = cam(6);
+    points = DATA.map((d, k) => { const a = blocks.anchor(c, k); return { x: a.x, y: a.y - 170 - d.value * 70, label: d.value.toFixed(1) + '%' }; });
+    drops = DATA.map((d, k) => { const a = blocks.anchor(c, k); return { x: a.x, y: a.y - 30 }; });
+    base = Math.max(...drops.map(d => d.y)) - 20;
+    const a0 = blocks.anchor(cam(2), 0), a6 = blocks.anchor(cam(3.4), 6);
+    path = [{ t: 1.4, x: 300, y: 980 }, { t: 2.1, x: a0.x + 10, y: a0.y + 20 }, { t: 2.9, x: a0.x + 30, y: a0.y + 30 }, { t: 3.6, x: a6.x, y: a6.y }];
+    points.forEach((p, i) => path.push({ t: HEAD[0] + i * (HEAD[1] - HEAD[0]) / 6, x: p.x + 6, y: p.y + 6 }));
+    path.push({ t: 10, x: points[6].x + 30, y: points[6].y + 40 });
+  },
+});
+</script>
+</body>
+</html>
