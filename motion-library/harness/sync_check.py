@@ -60,7 +60,7 @@ motion = np.r_[0, np.abs(np.diff(frames, axis=0)).mean(axis=(1, 2))]
 
 # 2 撞击类音效的前后帧联系表
 IMPACT = {'slam', 'hit', 'pop', 'thud', 'lock', 'ding', 'flip', 'boing', 'tick', 'click', 'zip'}
-pick = [c for c in cues if c['type'] in IMPACT]
+pick = [c for c in cues if c['type'] in IMPACT] or cues[:6]      # 没有撞击类音效时，取前几个音效
 TW, TH = 320, 180
 font = ImageFont.truetype(FONT, 22)
 sheet = Image.new('RGB', (TW * 3 + 220, TH * len(pick)), (12, 16, 40))

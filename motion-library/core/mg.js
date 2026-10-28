@@ -74,7 +74,7 @@ export function mount({ duration, render, prepare }) {
   window.CUES = CUES;
   window.renderAt = t => render(Math.max(0, Math.min(duration, t)));
   const fonts = ['500 40px NSC', '700 40px NSC', '900 40px NSC', '500 40px Inter', '700 40px Inter', '800 40px Inter']
-    .map(f => document.fonts.load(f, '评论区鱼灾这种账号0123456789%'));
+    .map(f => document.fonts.load(f, '标题关键词内容示例0123456789%'));
   const imgs = [...document.images].map(i => i.decode().catch(() => {}));
   window.ready = Promise.all([...fonts, ...imgs, prepare ? prepare() : null])
     .then(() => document.fonts.ready).then(() => { window.renderAt(0); return true; });

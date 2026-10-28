@@ -6,6 +6,7 @@
 //   node harness/render.mjs effects/01-infinite-canvas                        1080p 成片 → <效果>/out/video.mp4
 //   选项：--scale 0.6667（720p 草稿） --workers 3（并行页面数） --cover 2.5（封面时间点）
 //         --publish（把成片、封面、动图预览复制到效果目录：preview.mp4 / cover.jpg / preview.webp）
+//         --config my-configs/xxx.js（套用自己的内容；路径相对当前目录）  --out 目录（默认 <效果>/out）
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +27,7 @@ for (let i = 0; i < argv.length; i++) {
 }
 const effDir = path.resolve(ROOT, opt._[0]);
 const rel = path.relative(ROOT, effDir).split(path.sep).join('/');
-const outDir = path.join(effDir, 'out');
+const outDir = opt.out ? path.resolve(opt.out) : path.join(effDir, 'out');
 fs.mkdirSync(outDir, { recursive: true });
 const scale = +(opt.scale || 1);
 
@@ -39,13 +40,15 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(p).pipe(res);
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
-const url = `http://127.0.0.1:${server.address().port}/${rel}/index.html`;
+const cfgQ = opt.config ? `?config=${encodeURIComponent('/' + path.relative(ROOT, path.resolve(opt.config)).split(path.sep).join('/'))}` : '';
+const url = `http://127.0.0.1:${server.address().port}/${rel}/index.html${cfgQ}`;
 
 const browser = await chromium.launch();
 async function openPage() {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: scale });
   page.on('pageerror', e => console.error('[page]', e.message));
   await page.goto(url);
+  await page.waitForFunction(() => window.ready, null, { timeout: 60000 });
   await page.evaluate(() => window.ready);
   return page;
 }

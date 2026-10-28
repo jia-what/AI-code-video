@@ -2,9 +2,28 @@
 
 ![预览](preview.webp)
 
-浅灰底加点阵的"白板"空间。所有内容摆在世界坐标里，相机在其间平移、缩放，像在 Figma 或 tldraw 里讲故事。适合讲流程、讲关系、讲"一件事背后的结构"。
+浅灰底加点阵的"白板"空间。内容摆在世界坐标里，相机在其间平移、缩放，像在 Figma 或 tldraw 里讲故事。适合讲流程、讲关系、讲"一件事背后的结构"。
 
-[成片 preview.mp4](preview.mp4) · 源码：[`infinite-canvas.js`](infinite-canvas.js)、[`index.html`](index.html)
+[成片 preview.mp4](preview.mp4) · 文件：[`config.js`](config.js)（内容）· [`scene.js`](scene.js)（时间轴）· [`infinite-canvas.js`](infinite-canvas.js)（组件）
+
+## 套用
+
+复制 `config.js`，改成自己的内容，然后：
+
+```bash
+node harness/render.mjs effects/01-infinite-canvas --config my-configs/01.js --out out/01
+```
+
+| 字段 | 说明 |
+|---|---|
+| `title` | 开场标题，`<hl>…</hl>` 为重点词（渐变色） |
+| `card` | 开场内容卡：`name` 名称、`tag` 小标签、`text` 正文、`meta` 补充信息、`avatar` 头像图片（留空则显示 `initial` 首字母圆头像） |
+| `graph.source` | 节点图左上：来源节点（圆形头像 + `label`） |
+| `graph.hub` | 节点图左下：深色处理节点，`title`、`status`、`rows`（每行一个开关，光标会打开最后一个） |
+| `graph.result` | 节点图右侧：结果卡，字段同 `card` |
+| `graph.tag` / `graph.caption` | 结果卡下的紫色胶囊；本段结论（逐字浮现） |
+| `extras` | 拉远时画布其它角落的小卡片，最多 6 个：`note`、`bars`、`image`、`dark`、`pill`、`quote` |
+| `ending` | 结尾推到的下一个问题 |
 
 ## 看点
 
@@ -16,48 +35,35 @@
 | 元素从模糊中浮现 | 卡片、节点：模糊 18px→0，上移 14px，缩放 0.97→1，0.5–0.6 秒 |
 | 文字逐字浮现 | 每个字依次从模糊、下沉中出现；重点词按位置取蓝紫渐变 |
 | 节点连线 | S 形贝塞尔曲线从起点画到终点，两端各一个空心圆点 |
-| 拉远看全局 | 结尾把镜头拉到 0.4 倍，露出画布上其它角落的内容，"无限"感最强的一刻 |
+| 拉远看全局 | 镜头拉到 0.42 倍，露出画布其它角落的内容，"无限"感最强的一刻 |
 
-## 动作拆解（参考节奏）
+## 动作拆解
 
 | 时间 | 动作 |
 |---|---|
 | 0–1.2s | 标题逐字浮现，镜头从 1.28 倍缓慢拉到 1.14 倍 |
-| 1.25s | 评论卡浮现；光标从右下进入 |
+| 1.25s | 内容卡浮现；光标从右下进入 |
 | 2.65s | 光标点击卡片：按下，同时放出一圈光环 |
-| 2.9–4.1s | 镜头平移到下一组内容（中途后拉） |
-| 3.75–6.4s | 节点依次浮现 → 连线 → 光标打开开关 → 结果卡浮现 → 胶囊标签弹出 |
-| 7.1–8.2s | 镜头拉远到全局，画布其它角落的卡片依次浮现 |
-| 8.4–9.5s | 镜头推到下一个问题，问题逐字浮现 |
+| 2.9–4.1s | 镜头平移到节点图（中途后拉） |
+| 3.75–6.4s | 来源节点、处理节点依次浮现 → 连线 → 光标打开开关 → 结果卡浮现 → 胶囊弹出 → 结论浮现 |
+| 7.1–8.2s | 镜头拉远到全局，其它角落的小卡片依次浮现 |
+| 8.4–9.5s | 镜头推到结尾问题，问题逐字浮现 |
 
-## 用法
+## 组件（自己搭新时间轴时用）
 
 ```js
-import { mount, seg, Reveal, blurIn, Cursor } from '../../core/mg.js';
 import { InfiniteCanvas, camPath, Connector, Toggle } from './infinite-canvas.js';
 
-const ic = InfiniteCanvas(stage);                 // ic.world 是放内容的容器（世界坐标）
-const cam = camPath([{ t: 0, x: 0, y: 0, z: 1.2 }, { t: 3, x: 1600, y: 300, z: 1.1 }]);
-const link = Connector(svg, x0, y0, x1, y1);      // link(p) 画线，p 0→1
-const cursor = Cursor(stage);
-
-mount({ duration: 10, render(t) {
-  const c = cam(t);
-  ic.render(t, { cam: c, cursor: cursor.at(t, path) });
-  blurIn(card, seg(t, 1.2, 1.8));
-  link(seg(t, 4.6, 5.3));
-} });
+const ic = InfiniteCanvas(stage, { gap: 34, dot: '#C3C4D2', spotR: 210 });   // ic.world 放内容（世界坐标）
+const cam = camPath([{ t: 0, x: 0, y: 0, z: 1.2 }, { t: 3, x: 1600, y: 300, z: 1.1 }], { dip: .14 });
+const link = Connector(svg, x0, y0, x1, y1);      // link(p)：p 0→1 画线
+const sw = Toggle(el);                            // sw(p)：p 0 关 → 1 开
+ic.render(t, { cam: cam(t), cursor });            // 每帧调用；ic.toScreen(cam, x, y) 把世界坐标换成屏幕坐标
 ```
-
-| 参数 | 默认 | 说明 |
-|---|---|---|
-| `InfiniteCanvas(stage, { gap, dot, spotR })` | 34 / `#C3C4D2` / 210 | 点间距、点颜色、聚光半径 |
-| `camPath(keys, { dip, drift })` | 0.14 / 0.012 | 平移时后拉幅度、静止时的呼吸幅度 |
-| `ic.toScreen(cam, x, y)` | | 世界坐标 → 屏幕坐标，让光标准确指向世界里的元素 |
 
 ## 音效搭配
 
-`air`（浮现、平移）、`mouse`（点击）、`tick`（节点出现，音高递升）、`sparkle`（结果出现）、`swell` 加 `boom`（下一个大问题）。
+`air`（浮现、平移）、`mouse`（点击）、`tick`（节点出现，音高递升）、`sparkle`（结果出现）、`swell` 接 `boom`（结尾问题）。
 
 ## 提示词
 
@@ -65,9 +71,9 @@ mount({ duration: 10, render(t) {
 用"无限画布"风格做一段 10 秒、1920×1080、30fps 的讲解动画：
 - 背景：浅灰 #EFEFF3，34px 间距的灰色小点阵，边缘轻微暗角；点阵画在世界坐标里，随相机移动。
 - 光标：深色箭头加紫色光晕，光标附近约 200px 内的点阵变成紫色并变大；点击时箭头微缩，并放出一圈紫色光环。
-- 相机：内容放在世界坐标里，相机在几组内容之间平移、缩放（inOutCubic），远距离平移时中途后拉约 14%；结尾拉远到 0.4 倍露出全局。
+- 相机：内容放在世界坐标里，相机在几组内容之间平移、缩放（inOutCubic），远距离平移时中途后拉约 14%；后段拉远到 0.4 倍露出全局。
 - 元素出现：模糊 18px→0、上移 14px、缩放 0.97→1；标题逐字模糊浮现，重点词用 #A99EFF→#6A5BFF 渐变。
 - 节点图：白色卡片和深色卡片之间用 S 形贝塞尔连线逐渐画出，两端是空心圆点。
-- 内容：<换成你的故事：3 组内容 + 1 个结尾问题>。
+- 内容：<你的内容：开场标题 + 一张卡片 → 节点图（来源 → 处理 → 结果）→ 结尾问题>。
 - 音效用代码合成：浮现用柔和空气声，点击用鼠标咔哒，节点出现用递升的 tick，结尾问题用 swell 接 boom。
 ```

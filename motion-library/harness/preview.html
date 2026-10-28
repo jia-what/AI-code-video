@@ -30,6 +30,7 @@
 <div id="wrap"><iframe id="f"></iframe></div>
 <script>
 // 用法：在 motion-library 目录运行 `python3 -m http.server 8000`，打开 http://localhost:8000/harness/preview.html
+// 套用配置：preview.html?effect=02-comment-morph&config=/my-configs/xxx.js
 const f = document.getElementById('f'), seek = document.getElementById('seek'), tEl = document.getElementById('t'), eff = document.getElementById('eff');
 let playing = false, t0 = 0, start = 0;
 const fit = () => { f.style.transform = `scale(${document.getElementById('wrap').clientWidth / 1920})`; };
@@ -39,8 +40,10 @@ function load() {
   const q = new URLSearchParams(location.search).get('effect');
   if (q && !load.done) eff.value = q;
   load.done = true;
-  f.src = `../effects/${eff.value}/index.html`;
-  f.onload = () => f.contentWindow.ready.then(() => { seek.max = f.contentWindow.DURATION; draw(0); });
+  const cfg = new URLSearchParams(location.search).get('config');
+  f.src = `../effects/${eff.value}/index.html` + (cfg ? `?config=${encodeURIComponent(cfg)}` : '');
+  const wait = () => f.contentWindow.ready ? f.contentWindow.ready.then(() => { seek.max = f.contentWindow.DURATION; draw(0); }) : setTimeout(wait, 50);
+  f.onload = wait;
 }
 eff.onchange = load;
 seek.oninput = () => { playing = false; draw(+seek.value); };
