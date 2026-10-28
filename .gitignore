@@ -1,0 +1,5 @@
+node_modules/
+frames/
+*.png
+!videos/**/cover.png
+.DS_Store
