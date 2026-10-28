@@ -1,0 +1,17 @@
+{
+  "name": "deepseek-dafeiyu",
+  "version": "1.0.0",
+  "description": "B站被蓝色大肥鱼攻陷了 · 20 秒知识讲解开头动画",
+  "scripts": {
+    "stills": "node render.js stills 2.3 11.2 14.3",
+    "draft": "node render.js video 720",
+    "build": "node render.js video 1080 && cp out/video.mp4 video.mp4"
+  },
+  "dependencies": {
+    "@fontpkg/smiley-sans": "^2.0.4",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/noto-sans-sc": "^5.3.1",
+    "gsap": "^3.12.5"
+  },
+  "private": true
+}

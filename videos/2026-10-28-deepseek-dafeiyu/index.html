@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>B站闹鱼灾</title>
+<style>
+@font-face { font-family: Smiley; src: url(node_modules/@fontpkg/smiley-sans/SmileySans-Oblique.ttf.woff2) format("woff2"); }
+@font-face { font-family: NSC; font-weight: 700; src: url(node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-700-normal.woff2) format("woff2"); }
+@font-face { font-family: NSC; font-weight: 900; src: url(node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-900-normal.woff2) format("woff2"); }
+@font-face { font-family: JBM; font-weight: 700; src: url(node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2) format("woff2"); }
+
+:root {
+  --bg0: #050A1F; --bg1: #0D1A4A;
+  --ds: #4D6BFE;          /* 鲸鱼蓝（投影 / 强调） */
+  --fish: #5B78C8; --fish-dk: #2546B8;
+  --navy: #151A3D;        /* 描边 */
+  --ice: #C4DCF5; --white: #F2F5FF; --cream: #FFFAF2; --muted: #8C9BCB;
+  --gold: #FFD54A;        /* 重点词（取自围裙金边） */
+  --pink: #FF5D8A;        /* 只用于插件锁定 */
+  --card: rgba(19, 31, 82, .92); --line: rgba(196, 220, 245, .16);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg0); }
+body { font-family: NSC, sans-serif; color: var(--white); }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background: radial-gradient(1400px 900px at 50% 0%, #142a74 0%, var(--bg1) 40%, var(--bg0) 85%); }
+.abs { position: absolute; }
+.fill { position: absolute; inset: 0; }
+svg { overflow: visible; }
+img { display: block; }
+
+/* 环境层 */
+#rays { position: absolute; left: -400px; top: -300px; width: 2720px; height: 1500px; transform-origin: 50% 0%;
+  background: repeating-conic-gradient(from 180deg at 50% 0%, rgba(196,220,245,.10) 0deg 3deg, transparent 3deg 9deg, rgba(196,220,245,.05) 9deg 11deg, transparent 11deg 17deg);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 70%); }
+#dots { background-image: radial-gradient(circle, rgba(77,107,254,.38) 2.4px, transparent 2.9px); background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 55%, #000 100%); }
+#vig { background: radial-gradient(ellipse 75% 75% at 50% 45%, transparent 55%, rgba(0,0,0,.6) 100%); pointer-events: none; }
+#grain { background: url(assets/grain.png); mix-blend-mode: overlay; opacity: .16; pointer-events: none; }
+.bokeh { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(196,220,245,.22), rgba(196,220,245,0) 70%); }
+
+/* 贴纸大字 */
+.stk { font-family: Smiley, NSC, sans-serif; color: #fff; white-space: nowrap; line-height: 1.02;
+  text-shadow: var(--outline); }
+.stk .y { color: var(--gold); }
+.pill { display: inline-flex; align-items: center; gap: 12px; height: 60px; padding: 0 26px; border-radius: 30px;
+  background: var(--cream); color: var(--navy); font-family: Smiley, NSC; font-size: 40px; box-shadow: 5px 6px 0 var(--ds); white-space: nowrap; }
+.cap { font-weight: 700; font-size: 38px; color: var(--ice); white-space: nowrap; padding: 10px 28px; border-radius: 30px; background: rgba(5,10,31,.6); }
+
+/* 评论卡 */
+.cmt { position: absolute; width: 940px; height: 150px; border-radius: 26px; background: var(--card); border: 2px solid var(--line);
+  display: flex; align-items: center; gap: 26px; padding: 0 30px; box-shadow: 0 18px 40px rgba(0,0,0,.35); }
+.cmt .av { position: relative; width: 96px; height: 96px; flex: none; border-radius: 50%; overflow: hidden; background-color: #2a43a8;
+  background-image: url(assets/whalegirl.png); background-repeat: no-repeat; background-size: 220px auto; background-position: -62px -80px;
+  border: 3px solid var(--ice); }
+.cmt .av.human { background-image: none; background-color: #34406E; border-color: #5c6894; }
+.cmt .av.human svg { position: absolute; inset: 0; }
+.cmt .tx { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cmt .nm { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 28px; color: var(--ice); white-space: nowrap; }
+.cmt .nm .lv { font-family: JBM; font-size: 18px; color: #7fe0a8; border: 2px solid #7fe0a8; border-radius: 6px; padding: 0 6px; line-height: 24px; }
+.cmt .bd { font-weight: 700; font-size: 34px; color: var(--white); white-space: nowrap; }
+.cmt.hum .nm { color: #b7c0dd; }
+.panel { position: absolute; border-radius: 34px; background: rgba(10,18,52,.72); border: 2px solid var(--line); overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,.5); }
+.panel .hd { position: absolute; left: 34px; top: 22px; font-family: Smiley; font-size: 44px; color: var(--ice); }
+
+/* 插件元素 */
+.lock { position: absolute; left: 12px; top: -16px; height: 32px; padding: 0 12px; border-radius: 8px; background: var(--pink); color: #fff;
+  font-family: JBM; font-size: 18px; line-height: 32px; letter-spacing: .08em; }
+.badge { height: 38px; padding: 0 14px; border-radius: 19px; background: var(--pink); color: #fff; font-size: 22px; line-height: 38px; box-shadow: 3px 3px 0 #b8264f; }
+.ring { position: absolute; width: 150px; height: 150px; }
+.tape { position: absolute; left: 150px; top: 44px; height: 64px; padding: 0 30px; background: var(--cream); color: var(--navy);
+  font-family: Smiley, NSC; font-size: 40px; line-height: 64px; white-space: nowrap; transform: rotate(-2deg); box-shadow: 4px 5px 0 rgba(0,0,0,.35);
+  background-image: repeating-linear-gradient(-45deg, transparent 0 14px, rgba(37,70,184,.08) 14px 28px); }
+.rice { position: absolute; left: 0; top: 0; width: 22px; height: 12px; border-radius: 50%; background: #fffaf2; box-shadow: 0 0 8px rgba(255,255,255,.8); }
+
+/* 图鉴卡 */
+#card { position: absolute; left: 170px; top: 100px; width: 620px; height: 870px; border-radius: 34px; overflow: hidden;
+  background: linear-gradient(160deg, #22379a, #0f1b4a 70%); border: 6px solid #d1ab55; box-shadow: 0 40px 90px rgba(0,0,0,.55), inset 0 0 0 6px #151A3D; }
+#card .hdr { position: absolute; left: 0; right: 0; top: 0; height: 120px; padding: 22px 34px; background: rgba(5,10,31,.55); display: flex; align-items: baseline; gap: 22px; }
+#card .no { font-family: JBM; font-size: 30px; color: #d1ab55; }
+#card .art { position: absolute; left: 6px; right: 6px; top: 120px; bottom: 90px; overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, #3d5fd8, #14246a 70%); }
+#card .art::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,.12) 2px, transparent 2.5px); background-size: 20px 20px; }
+#card .ft { position: absolute; left: 0; right: 0; bottom: 0; height: 90px; padding: 0 34px; display: flex; align-items: center; justify-content: space-between;
+  font-weight: 700; font-size: 28px; color: #d1ab55; background: rgba(5,10,31,.55); }
+#holo { position: absolute; top: -200px; width: 260px; height: 1300px; transform: rotate(20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.0) 10%, rgba(180,220,255,.35) 45%, rgba(255,230,180,.3) 55%, transparent 90%); mix-blend-mode: screen; }
+.chip { position: absolute; height: 120px; padding: 0 34px 0 22px; border-radius: 26px; background: var(--card); border: 3px solid var(--ice);
+  display: flex; align-items: center; gap: 18px; font-family: Smiley, NSC; font-size: 50px; color: #fff; white-space: nowrap; box-shadow: 7px 8px 0 var(--ds); }
+.chip .n { width: 64px; height: 64px; border-radius: 50%; background: var(--gold); color: var(--navy); font-family: JBM; font-size: 30px; display: grid; place-items: center; }
+.bubble { position: absolute; padding: 18px 36px 22px; border-radius: 40px; background: var(--cream); color: var(--navy); font-family: Smiley, NSC; box-shadow: 6px 7px 0 var(--ds); white-space: nowrap; }
+.bubble::after { content: ""; position: absolute; left: 40px; bottom: -26px; border: 16px solid transparent; border-top: 22px solid var(--cream); }
+
+/* 拍立得 / AI 气泡 */
+#pol { position: absolute; left: 250px; top: 160px; width: 600px; height: 720px; background: var(--cream); border-radius: 12px; box-shadow: 0 40px 90px rgba(0,0,0,.55); }
+#pol .ph { position: absolute; left: 34px; top: 34px; width: 532px; height: 532px; background: #0f1b4a; overflow: hidden;
+  background-image: linear-gradient(rgba(196,220,245,.07) 2px, transparent 2px), linear-gradient(90deg, rgba(196,220,245,.07) 2px, transparent 2px); background-size: 44px 44px; }
+#pol .pc { position: absolute; left: 0; right: 0; bottom: 34px; text-align: center; font-family: Smiley; font-size: 64px; color: var(--navy); }
+#aib { position: absolute; left: 1000px; top: 230px; width: 560px; height: 150px; border-radius: 34px; background: var(--card); border: 2px solid var(--line);
+  display: flex; align-items: center; gap: 24px; padding: 0 34px; box-shadow: 0 24px 60px rgba(0,0,0,.4); }
+#aib .ic { width: 84px; height: 84px; border-radius: 22px; background: var(--ds); display: grid; place-items: center; font-family: JBM; font-size: 34px; color: #fff; }
+#aib .lb { font-weight: 700; font-size: 36px; color: var(--ice); }
+#aib .dots i { display: inline-block; width: 16px; height: 16px; margin-right: 10px; border-radius: 50%; background: var(--ice); }
+#flash { background: radial-gradient(circle at var(--fx, 50%) var(--fy, 50%), rgba(255,255,255,.95), rgba(196,220,245,.4) 30%, transparent 60%); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="person" viewBox="0 0 96 96"><circle cx="48" cy="38" r="16" fill="#8C9BCB"/><path d="M18 88 C20 64 76 64 78 88 Z" fill="#8C9BCB"/></symbol>
+    <!-- 通用蓝鲸简笔画（非官方 Logo） -->
+    <symbol id="whale" viewBox="0 0 360 200">
+      <path d="M20 120 C20 80 90 55 180 62 C240 67 280 95 300 110 L338 66 Q348 98 336 116 Q352 128 362 158 L300 130 C270 156 210 172 140 170 C70 168 20 156 20 120 Z" fill="#4D6BFE" stroke="#C4DCF5" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M44 140 C80 158 180 164 250 146" fill="none" stroke="#C4DCF5" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+      <circle cx="72" cy="110" r="8" fill="#F2F5FF"/>
+    </symbol>
+    <symbol id="reticle" viewBox="0 0 150 150">
+      <circle cx="75" cy="75" r="64" fill="none" stroke="#FF5D8A" stroke-width="6" stroke-dasharray="22 12"/>
+      <circle cx="75" cy="75" r="52" fill="none" stroke="#FF5D8A" stroke-width="2" opacity=".6"/>
+      <path d="M75 0 V22 M75 128 V150 M0 75 H22 M128 75 H150" stroke="#FF5D8A" stroke-width="6" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="stage">
+  <div id="rays"></div>
+  <div class="fill" id="bokeh"></div>
+  <div class="fill" id="dots"></div>
+
+  <div class="fill" id="cam">
+    <!-- 镜头1 -->
+    <section class="fill" id="s1">
+      <div class="fill" id="f1wrap" style="perspective:1800px">
+        <div class="abs" id="f1" style="left:170px; top:90px; width:1000px; height:2600px; transform: rotateX(16deg) rotateZ(-8deg); transform-origin: 50% 0%"></div>
+      </div>
+      <svg class="abs" id="burst1" width="3000" height="3000" style="left:-120px; top:-680px" viewBox="-1500 -1500 3000 3000"></svg>
+      <img class="abs" id="wg1" src="assets/whalegirl-sticker.png" style="left:1150px; top:180px; height:900px">
+      <div class="abs" id="t1" style="left:110px; top:250px; transform: rotate(-4deg); transform-origin: 0 50%">
+        <div class="pill" id="t1a" style="font-size:58px; height:84px; padding:0 34px; border-radius:42px">B站</div>
+        <div class="stk" id="t1b" style="font-size:170px; margin-top:22px">被蓝色大肥鱼</div>
+        <div class="stk" id="t1c" style="font-size:230px"><span class="y">攻陷了！</span></div>
+      </div>
+    </section>
+
+    <!-- 镜头2 -->
+    <section class="fill" id="s2" style="perspective:2000px">
+      <div id="card">
+        <div class="hdr"><span class="no">No.001</span><span class="stk" style="font-size:66px; text-shadow:none">蓝色大肥鱼</span></div>
+        <div class="art"><img src="assets/whalegirl.png" style="position:absolute; left:50%; bottom:-20px; height:700px; transform:translateX(-50%)"></div>
+        <div class="ft"><span>物种图鉴</span><span>B站 · 赛博鱼塘</span></div>
+        <div id="holo"></div>
+      </div>
+      <div class="bubble" id="bj" style="left:610px; top:120px; font-size:72px"><span style="display:block; font-family:NSC; font-weight:700; font-size:24px; color:#5b6378; margin-bottom:2px">自称</span>本鲸</div>
+      <div class="abs" id="s2k" style="left:900px; top:150px"><span class="pill">真身</span></div>
+      <div class="abs stk" id="s2h1" style="left:900px; top:250px; font-size:118px">DeepSeek 驱动的</div>
+      <div class="abs stk" id="s2h2" style="left:900px; top:390px; font-size:170px"><span class="y">AI 账号</span></div>
+      <div class="chip" id="ch1" style="left:900px; top:680px; transform:rotate(-3deg)"><span class="n">1</span>找视频</div>
+      <div class="chip" id="ch2" style="left:1190px; top:700px; transform:rotate(2deg)"><span class="n">2</span>读字幕</div>
+      <div class="chip" id="ch3" style="left:1480px; top:670px; transform:rotate(-2deg)"><span class="n">3</span>按人设发评论</div>
+    </section>
+
+    <!-- 镜头3 -->
+    <section class="fill" id="s3" style="perspective:2000px">
+      <svg class="abs" id="burst3" width="3000" height="3000" style="left:-950px; top:-980px" viewBox="-1500 -1500 3000 3000"></svg>
+      <div id="pol">
+        <div class="ph">
+          <svg class="abs" id="whaleEl" width="440" height="244" style="left:46px; top:144px"><use href="#whale" width="100%" height="100%"/></svg>
+          <svg class="abs" id="ret3" width="532" height="532" style="left:0; top:0" viewBox="0 0 532 532">
+            <g fill="none" stroke="#C4DCF5" stroke-width="10" stroke-linecap="round">
+              <path d="M40 120 V40 H120"/><path d="M412 40 H492 V120"/><path d="M492 412 V492 H412"/><path d="M120 492 H40 V412"/>
+            </g>
+            <rect id="scan" x="40" y="40" width="452" height="8" rx="4" fill="#F2F5FF"/>
+          </svg>
+        </div>
+        <div class="pc">这是什么？</div>
+      </div>
+      <img class="abs" id="wg3" src="assets/whalegirl-sticker.png" style="left:250px; top:120px; height:860px">
+      <div id="aib"><div class="ic">AI</div><div><div class="lb">AI 识图结果</div><div class="dots" id="dots3" style="margin-top:14px"><i></i><i></i><i></i></div></div></div>
+      <div class="abs stk" id="r3" style="left:980px; top:440px; font-size:160px; transform:rotate(-3deg)">蓝色<span class="y">大肥鱼</span></div>
+      <div class="abs" id="cap3" style="left:960px; top:985px"><span class="cap">外号来自一次 AI 识图乌龙</span></div>
+    </section>
+
+    <!-- 镜头4 + 5 -->
+    <section class="fill" id="s4">
+      <div class="panel" id="p4" style="left:110px; top:80px; width:1010px; height:930px"><div class="hd">评论区</div></div>
+      <div class="abs" id="plug" style="left:1210px; top:110px">
+        <div style="display:flex; align-items:center; gap:20px">
+          <img src="assets/icon-512.png" style="width:96px; height:96px; border-radius:24px; box-shadow:5px 6px 0 #4D6BFE">
+          <span class="pill">网友开源插件</span>
+        </div>
+        <div class="stk" style="font-size:150px; margin-top:34px">大肥鱼</div>
+        <div class="stk" style="font-size:150px"><span class="y">消除计划</span></div>
+      </div>
+      <img class="abs" id="gun" src="assets/gatling.webp" style="left:1130px; top:600px; width:400px">
+      <div class="fill" id="fx4"></div>
+      <div class="abs" id="t5" style="left:960px; top:540px; text-align:center">
+        <div class="stk" style="font-size:150px">评论区里，</div>
+        <div class="stk" style="font-size:200px">谁才是<span class="y">人</span>？</div>
+      </div>
+      <img class="abs" id="peek" src="assets/whalegirl-sticker.png" style="left:1440px; top:620px; height:620px; transform-origin:50% 100%">
+      <div class="abs stk" id="q5" style="left:1700px; top:600px; font-size:150px"><span class="y">?</span></div>
+    </section>
+  </div>
+
+  <div class="fill" id="flash" style="pointer-events:none"></div>
+  <div class="fill" id="vig"></div>
+  <div class="fill" id="grain"></div>
+  <div class="fill" id="fade" style="background:#050A1F"></div>
+</div>
+
+<script src="node_modules/gsap/dist/gsap.min.js"></script>
+<script>
+// ---------- 工具 ----------
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
+const CUES = []; // 音效时间点：画面与声音共用这一份时间轴
+const cue = (t, type, opt = {}) => CUES.push({ t: +t.toFixed(3), type, ...opt });
+
+// 评论文案：按插件 README / 截图里描述的大肥鱼特征（自称「本鲸」、括号里甩尾巴、@主人汇报）
+const FISH = [
+  ['某某的大肥鱼', '刷到这条，本鲸觉得讲得挺清楚的（甩甩尾巴）'],
+  ['某某の鲸', '@主人 汇报：这期视频本鲸看完啦'],
+  ['隔壁的小肥鱼', '总结一下本期要点：第一……（摇尾巴）'],
+  ['今天也在刷的鱼', '本鲸来交作业了，这期讲得很扎实！'],
+];
+const HUMAN = ['路过的人类', '评论区闹鱼灾了！'];
+function card(parent, x, y, data, human) {
+  const c = el('div', 'cmt' + (human ? ' hum' : ''), `
+    <div class="av${human ? ' human' : ''}">${human ? '<svg width="96" height="96"><use href="#person" width="96" height="96"/></svg>' : ''}</div>
+    <div class="tx"><div class="nm"><span>${data[0]}</span>${human ? '' : '<span class="lv">LV2</span>'}</div><div class="bd">${data[1]}</div></div>`, parent);
+  c.style.left = x + 'px'; c.style.top = y + 'px';
+  return c;
+}
+function burst(svg, n, color) {
+  let h = '';
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI * 2, a1 = a0 + Math.PI / n * 0.9;
+    h += `<path d="M0 0 L${Math.cos(a0) * 1500} ${Math.sin(a0) * 1500} L${Math.cos(a1) * 1500} ${Math.sin(a1) * 1500} Z" fill="${color}" opacity="${i % 2 ? .10 : .18}"/>`;
+  }
+  svg.innerHTML = h;
+}
+const OUT = [];
+for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; OUT.push(`${(Math.cos(a) * .07).toFixed(3)}em ${(Math.sin(a) * .07).toFixed(3)}em 0 #151A3D`); }
+for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; OUT.push(`${(.07 + Math.cos(a) * .07).toFixed(3)}em ${(.085 + Math.sin(a) * .07).toFixed(3)}em 0 #4D6BFE`); }
+document.documentElement.style.setProperty('--outline', OUT.join(','));
+burst($('#burst1'), 36, '#C4DCF5');
+burst($('#burst3'), 36, '#C4DCF5');
+
+// 镜头1 评论流
+const f1 = $('#f1');
+card(f1, 30, 40, HUMAN, true);
+for (let i = 1; i < 15; i++) card(f1, 30, 40 + i * 172, FISH[(i - 1) % 4]);
+
+// 镜头4 评论区
+const p4 = $('#p4');
+const ROWS = [FISH[0], FISH[1], HUMAN, FISH[2], FISH[3]];
+const C4 = ROWS.map((d, i) => card(p4, 34, 92 + i * 166, d, d === HUMAN));
+const newC = card(p4, 34, 92, FISH[0]);           // 镜头5：又冒出来的鱼
+const fx4 = $('#fx4');
+
+// ---------- 环境：随时间变化 ----------
+const BK = [];
+for (let i = 0; i < 14; i++) {
+  const s = 40 + rnd() * 150, b = el('div', 'bokeh', '', $('#bokeh'));
+  b.style.width = b.style.height = s + 'px';
+  BK.push({ b, x: rnd() * 1920, y: rnd() * 1080, v: 10 + rnd() * 30, p: rnd() * 6 });
+}
+const BUB = [];
+for (let i = 0; i < 30; i++) {
+  const s = 6 + rnd() * 16, b = el('div', 'abs', '', $('#bokeh'));
+  Object.assign(b.style, { width: s + 'px', height: s + 'px', borderRadius: '50%', border: '2px solid rgba(196,220,245,.35)' });
+  BUB.push({ b, x: rnd() * 1920, v: 50 + rnd() * 110, o: rnd() * 1300, w: rnd() * 6 });
+}
+function ambient(t) {
+  $('#rays').style.transform = `rotate(${Math.sin(t * 0.5) * 2.5}deg)`;
+  for (const k of BK) k.b.style.transform = `translate(${k.x + Math.sin(t * 0.4 + k.p) * 30}px, ${((k.y - t * k.v) % 1200 + 1200) % 1200 - 100}px)`;
+  for (const k of BUB) k.b.style.transform = `translate(${k.x + Math.sin(t * 1.7 + k.w) * 12}px, ${1120 - ((t * k.v + k.o) % 1300)}px)`;
+  const f = Math.floor(t * 30);
+  $('#grain').style.backgroundPosition = `${(f * 137) % 512}px ${(f * 251) % 512}px`;
+  $('#burst1').style.transform = `rotate(${t * 8}deg)`;
+  $('#burst3').style.transform = `rotate(${t * -8}deg)`;
+}
+
+// ---------- 时间轴 ----------
+gsap.defaults({ ease: 'power3.out' });
+const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+gsap.set(['#s2', '#s3', '#s4'], { autoAlpha: 0 });
+gsap.set('#fade', { autoAlpha: 0 });
+gsap.set('#flash', { autoAlpha: 0 });
+gsap.set(['#t5', '#cap3'], { xPercent: -50, yPercent: -50 });
+const shake = (t, k = 1) => tl.to('#cam', { keyframes: [{ x: -20 * k, y: 12 * k }, { x: 16 * k, y: -10 * k }, { x: -8 * k, y: 6 * k }, { x: 0, y: 0 }], duration: 0.26, ease: 'none' }, t);
+
+// ===== 镜头1 0–3.3s 钩子 =====
+gsap.set('#burst1', { autoAlpha: 0 });
+gsap.set('#wg1', { y: 900, rotation: 8, transformOrigin: '50% 100%' });
+gsap.set(['#t1a', '#t1b', '#t1c'], { autoAlpha: 0 });
+// 0–1.3 评论流高速上滚，越来越多的鱼
+tl.fromTo(f1, { y: 0 }, { y: -1880, duration: 1.3, ease: 'power2.inOut' }, 0);
+tl.fromTo('#f1wrap', { scale: 1.22 }, { scale: 1, duration: 1.3, ease: 'power2.out' }, 0);
+[0.35, 0.55, 0.72, 0.86, 0.98, 1.08, 1.16].forEach((t, i) => cue(t, 'blip', { pitch: 1 + i * 0.12 }));
+// 1.22 角色从下方冲上来 + 放射线
+tl.to('#f1wrap', { autoAlpha: 0.35, filter: 'blur(3px)', duration: 0.3 }, 1.25);
+tl.to('#burst1', { autoAlpha: 1, duration: 0.25 }, 1.25);
+tl.to('#wg1', { y: 0, rotation: 4, duration: 0.42, ease: 'back.out(1.6)' }, 1.22);
+cue(1.22, 'whoosh', { dur: 0.35 });
+cue(1.5, 'boing');
+// 1.5 标题三段砸入
+tl.fromTo('#t1a', { autoAlpha: 0, scale: 2, x: -40 }, { autoAlpha: 1, scale: 1, x: 0, duration: 0.18, ease: 'power4.in' }, 1.5);
+tl.fromTo('#t1b', { autoAlpha: 0, scale: 2.2 }, { autoAlpha: 1, scale: 1, duration: 0.2, ease: 'power4.in', transformOrigin: '0% 50%' }, 1.62);
+tl.fromTo('#t1c', { autoAlpha: 0, scale: 2.6 }, { autoAlpha: 1, scale: 1, duration: 0.22, ease: 'power4.in', transformOrigin: '0% 50%' }, 1.82);
+cue(1.68, 'hit'); cue(1.82, 'hit', { pitch: 1.15 }); cue(2.04, 'slam');
+shake(2.04, 1.2);
+tl.to('#t1', { scale: 1.04, duration: 1.0, ease: 'none' }, 2.1);
+tl.to('#wg1', { y: -14, duration: 0.5, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 2.1);
+// 3.0–3.35 甩镜转场
+tl.to('#s1', { x: -1920, filter: 'blur(24px)', duration: 0.35, ease: 'power3.in' }, 3.0);
+tl.fromTo('#s2', { autoAlpha: 1, x: 1920, filter: 'blur(24px)' }, { x: 0, filter: 'blur(0px)', duration: 0.4, ease: 'power3.out' }, 3.3);
+tl.set('#s1', { autoAlpha: 0 }, 3.35);
+cue(3.0, 'whoosh', { dur: 0.6 });
+
+// ===== 镜头2 3.3–7.5s 物种图鉴 =====
+gsap.set('#card', { transformOrigin: '50% 50%', rotation: -4 });
+gsap.set('#holo', { x: -400 });
+gsap.set(['#bj', '#s2k', '#s2h1', '#s2h2', '#ch1', '#ch2', '#ch3'], { autoAlpha: 0 });
+tl.fromTo('#card', { rotationY: -25, y: 40 }, { rotationY: 0, y: 0, duration: 0.6 }, 3.3);
+tl.to('#holo', { x: 900, duration: 0.9, ease: 'power2.inOut' }, 3.75);
+cue(3.8, 'shine', { dur: 0.8 });
+tl.fromTo('#s2k', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.3 }, 3.7);
+tl.fromTo('#s2h1', { autoAlpha: 0, x: 60 }, { autoAlpha: 1, x: 0, duration: 0.35 }, 3.85);
+tl.fromTo('#s2h2', { autoAlpha: 0, scale: 2.2 }, { autoAlpha: 1, scale: 1, duration: 0.2, ease: 'power4.in', transformOrigin: '0% 50%' }, 4.15);
+cue(4.35, 'slam', { soft: true }); shake(4.35, 0.6);
+tl.fromTo('#bj', { autoAlpha: 0, scale: 0.2, transformOrigin: '10% 100%' }, { autoAlpha: 1, scale: 1, duration: 0.45, ease: 'back.out(2.6)' }, 4.8);
+cue(4.82, 'pop', { pitch: 1.2 });
+[['#ch1', 5.35], ['#ch2', 5.75], ['#ch3', 6.15]].forEach(([s, t], i) => {
+  tl.fromTo(s, { autoAlpha: 0, y: 80, scale: 0.6 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.4, ease: 'back.out(2.2)' }, t);
+  cue(t + 0.05, 'tick', { pitch: 1 + i * 0.25 });
+});
+// 7.1–7.5 翻牌转场
+tl.to(['#s2k', '#s2h1', '#s2h2', '#ch1', '#ch2', '#ch3', '#bj'], { x: 400, autoAlpha: 0, duration: 0.3, ease: 'power2.in', stagger: 0.02 }, 7.1);
+tl.to('#card', { rotationY: 90, x: 80, duration: 0.25, ease: 'power2.in' }, 7.25);
+cue(7.25, 'flip');
+tl.set('#s2', { autoAlpha: 0 }, 7.5);
+
+// ===== 镜头3 7.5–11.8s 外号由来 =====
+tl.set('#s3', { autoAlpha: 1 }, 7.5);
+gsap.set(['#aib', '#r3', '#cap3', '#wg3', '#burst3'], { autoAlpha: 0 });
+gsap.set('#pol', { transformOrigin: '50% 50%', rotation: -5 });
+gsap.set('#wg3', { transformOrigin: '50% 60%' });
+tl.fromTo('#pol', { rotationY: -90 }, { rotationY: 0, duration: 0.35, ease: 'power3.out' }, 7.5);
+tl.fromTo('#ret3', { scale: 1.2, autoAlpha: 0, transformOrigin: '50% 50%' }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: 'back.out(2)' }, 7.9);
+cue(7.95, 'click');
+tl.fromTo('#scan', { y: 0 }, { y: 444, duration: 0.6, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 8.15);
+cue(8.15, 'scan', { dur: 1.2 });
+tl.fromTo('#aib', { autoAlpha: 0, x: 60 }, { autoAlpha: 1, x: 0, duration: 0.35 }, 8.2);
+tl.to('#dots3 i', { y: -10, duration: 0.18, ease: 'sine.out', yoyo: true, repeat: 3, stagger: 0.1 }, 8.5);
+tl.to('#dots3', { autoAlpha: 0, duration: 0.1 }, 9.35);
+tl.to('#scan', { autoAlpha: 0, duration: 0.1 }, 9.35);
+tl.fromTo('#r3', { autoAlpha: 0, scale: 2.4 }, { autoAlpha: 1, scale: 1, duration: 0.2, ease: 'power4.in', transformOrigin: '30% 50%' }, 9.35);
+cue(9.55, 'ding'); cue(9.55, 'slam', { soft: true }); shake(9.55, 0.7);
+// 10.2 鲸鱼被吹胖 → 10.6 鲸鱼娘炸出来
+gsap.set('#whaleEl', { transformOrigin: '50% 50%' });
+gsap.set('#ret3', { autoAlpha: 0 });
+tl.to('#whaleEl', { scaleX: 0.85, scaleY: 1.6, duration: 0.4, ease: 'power2.in' }, 10.2);
+cue(10.2, 'inflate', { dur: 0.4 });
+tl.set('#flash', { '--fx': '550px', '--fy': '470px' }, 10.6);
+tl.fromTo('#flash', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, 10.6);
+tl.to('#whaleEl', { autoAlpha: 0, duration: 0.05 }, 10.6);
+tl.to('#pol', { rotation: -14, x: -140, y: 40, scale: 0.86, duration: 0.5, ease: 'power3.out' }, 10.6);
+tl.to('#burst3', { autoAlpha: 1, duration: 0.2 }, 10.6);
+tl.fromTo('#wg3', { autoAlpha: 1, scale: 0.15, rotation: -20, y: 80 }, { scale: 1, rotation: 5, y: 0, duration: 0.6, ease: 'back.out(1.7)' }, 10.6);
+cue(10.6, 'pop', { pitch: 0.7 }); cue(10.62, 'bubbles', { n: 6, gap: 0.05 });
+tl.fromTo('#cap3', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.35 }, 10.95);
+tl.to('#wg3', { y: -12, duration: 0.4, ease: 'sine.inOut', yoyo: true, repeat: 1 }, 11.2);
+// 11.75–12.15 推进穿越转场
+tl.to('#s3', { scale: 1.6, autoAlpha: 0, filter: 'blur(16px)', duration: 0.4, ease: 'power3.in' }, 11.75);
+cue(11.75, 'whoosh', { dur: 0.5 });
+
+// ===== 镜头4 12.0–16.2s 网友反击 =====
+const isFish = ROWS.map(d => d !== HUMAN);
+gsap.set(newC, { autoAlpha: 0 });
+gsap.set(['#plug', '#gun'], { autoAlpha: 0 });
+gsap.set(['#t5', '#peek', '#q5'], { autoAlpha: 0 });
+tl.fromTo('#s4', { autoAlpha: 0, scale: 0.8, filter: 'blur(12px)' }, { autoAlpha: 1, scale: 1, filter: 'blur(0px)', duration: 0.45, ease: 'power3.out' }, 11.95);
+tl.fromTo('#plug', { autoAlpha: 0, y: -500, rotation: -6 }, { autoAlpha: 1, y: 0, rotation: 0, duration: 0.55, ease: 'bounce.out' }, 12.4);
+cue(12.6, 'thud'); cue(12.8, 'thud', { soft: true });
+// 12.95 锁定
+const LOCKS = [];
+C4.forEach((c, i) => {
+  if (!isFish[i]) return;
+  const r = el('div', 'ring', '<svg width="150" height="150"><use href="#reticle" width="150" height="150"/></svg>', c);
+  Object.assign(r.style, { left: '-1px', top: '0px' });
+  const lk = el('div', 'lock', 'LOCKED', c);
+  const bd = el('span', 'badge', '大肥鱼 99%', c.querySelector('.nm'));
+  const tp = el('div', 'tape', '已遣返 · 回家吃白饭中', c);
+  gsap.set([r, lk, bd, tp], { autoAlpha: 0 });
+  const t = 12.95 + LOCKS.length * 0.12;
+  tl.fromTo(r, { autoAlpha: 1, scale: 2.2, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.3, ease: 'power3.out' }, t);
+  tl.to(r, { rotation: 180, duration: 3, ease: 'none' }, t + 0.3);
+  tl.set([lk, bd], { autoAlpha: 1 }, t + 0.18);
+  tl.to(c, { borderColor: '#FF5D8A', backgroundColor: 'rgba(80,24,60,.92)', duration: 0.15 }, t + 0.18);
+  cue(t + 0.18, 'lock', { pitch: 1 + LOCKS.length * 0.1 });
+  LOCKS.push({ c, r, lk, bd, tp, i });
+});
+// 13.3 白饭加特林进场开火
+tl.fromTo('#gun', { autoAlpha: 1, x: 500, rotation: 10 }, { x: 0, rotation: 0, duration: 0.4, ease: 'back.out(1.6)' }, 13.3);
+cue(13.35, 'swish');
+const MUZ = { x: 1150, y: 690 };
+const ACT = [['caught', 'flee'], ['beg', 'flee'], ['defiant', 'knocked'], ['scared', 'flee']];
+LOCKS.forEach((L, k) => {
+  const hit = 13.75 + k * 0.32;
+  const ax = 110 + 34 + 30 + 48, ay = 80 + 92 + L.i * 166 + 75;    // 头像中心（舞台坐标）
+  for (let b = 0; b < 6; b++) {
+    const r = el('div', 'rice', '', fx4);
+    const t0 = hit - 0.2 + b * 0.04;
+    gsap.set(r, { autoAlpha: 0 });
+    tl.fromTo(r, { autoAlpha: 1, x: MUZ.x, y: MUZ.y + (rnd() - .5) * 20 }, { x: ax + 30 + (rnd() - .5) * 40, y: ay + (rnd() - .5) * 50, duration: 0.16, ease: 'none' }, t0);
+    tl.set(r, { autoAlpha: 0 }, t0 + 0.16);
+  }
+  cue(hit - 0.2, 'gatling', { dur: 0.26 });
+  tl.to('#gun', { keyframes: [{ x: 14 }, { x: 0 }, { x: 10 }, { x: 0 }], duration: 0.24, ease: 'none' }, hit - 0.2);
+  // 迷你 DeepSeek 娘从头像里被打出来 → 逃跑
+  const [a1, a2] = ACT[k];
+  const m1 = el('img', 'abs', '', fx4); m1.src = `assets/${a1}.webp`;
+  const m2 = el('img', 'abs', '', fx4); m2.src = `assets/${a2}.webp`;
+  [m1, m2].forEach(m => { m.style.width = '240px'; m.style.left = (ax - 120) + 'px'; m.style.top = (ay - 200) + 'px'; });
+  gsap.set([m1, m2], { autoAlpha: 0 });
+  tl.fromTo(m1, { autoAlpha: 1, scale: 0.2, y: 60 }, { scale: 1, y: 0, duration: 0.25, ease: 'back.out(2.5)' }, hit);
+  tl.set(m1, { autoAlpha: 0 }, hit + 0.45);
+  if (a2 === 'knocked') {
+    tl.fromTo(m2, { autoAlpha: 1 }, { x: -700, y: -500, rotation: -540, duration: 0.6, ease: 'power2.in' }, hit + 0.45);
+  } else {
+    tl.fromTo(m2, { autoAlpha: 1 }, { x: -700, duration: 0.55, ease: 'power2.in' }, hit + 0.45);
+  }
+  cue(hit, 'pop', { pitch: 1.1 + k * 0.08 });
+  cue(hit + 0.45, 'zip');
+  tl.to([L.r, L.lk, L.bd, L.c.querySelector('.av'), L.c.querySelector('.tx')], { autoAlpha: 0, duration: 0.12 }, hit + 0.05);
+  tl.to(L.c, { borderColor: 'rgba(196,220,245,.16)', backgroundColor: 'rgba(19,31,82,.6)', duration: 0.2 }, hit + 0.05);
+  tl.fromTo(L.tp, { autoAlpha: 1, scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 0.25 }, hit + 0.3);
+});
+// 15.5 插件退场，评论区居中
+tl.to(['#plug', '#gun'], { x: 900, autoAlpha: 0, duration: 0.4, ease: 'power3.in', stagger: 0.05 }, 15.5);
+tl.to('#p4', { x: 345, duration: 0.6, ease: 'power3.inOut' }, 15.55);
+cue(15.55, 'swish');
+
+// ===== 镜头5 16.2–20s 悬念 =====
+// 16.25 所有评论下移，一条新的鱼评论又冒了出来
+tl.to(C4, { y: 166, duration: 0.3, ease: 'power2.inOut' }, 16.25);
+tl.fromTo(newC, { autoAlpha: 0, scale: 0.7, y: -40 }, { autoAlpha: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(2.5)' }, 16.45);
+cue(16.47, 'pop', { pitch: 1.0 });
+tl.fromTo(newC.querySelector('.av'), { rotation: -30 }, { rotation: 0, duration: 0.5, ease: 'elastic.out(1.2, 0.4)' }, 16.45);
+// 17.2 大字悬念
+tl.to('#p4', { scale: 0.88, autoAlpha: 0.3, filter: 'blur(5px)', duration: 0.35 }, 17.2);
+tl.fromTo('#t5', { autoAlpha: 0, scale: 2.3 }, { autoAlpha: 1, scale: 1, duration: 0.22, ease: 'power4.in' }, 17.2);
+cue(17.42, 'slam'); shake(17.42, 1);
+tl.to('#t5', { scale: 1.05, duration: 2.0, ease: 'none' }, 17.45);
+tl.fromTo('#peek', { autoAlpha: 1, y: 640, rotation: -10 }, { y: 0, rotation: -6, duration: 0.5, ease: 'back.out(1.8)' }, 18.2);
+cue(18.25, 'boing');
+tl.fromTo('#q5', { autoAlpha: 0, scale: 0, rotation: -30 }, { autoAlpha: 1, scale: 1, rotation: 10, duration: 0.35, ease: 'back.out(3)' }, 18.75);
+cue(18.77, 'ding', { soft: true });
+tl.to('#fade', { autoAlpha: 1, duration: 0.5, ease: 'power1.in' }, 19.5);
+tl.set({}, {}, 20);
+
+window.CUES = CUES;
+window.DURATION = 20;
+window.renderAt = t => { tl.seek(Math.max(t, 0.001), false); ambient(t); };
+const imgs = [...document.images].map(i => i.decode().catch(() => {}));
+const fonts = ['40px Smiley', '700 40px NSC', '900 40px NSC', '700 40px JBM'].map(f => document.fonts.load(f, document.body.innerText));
+window.ready = Promise.all([...fonts, ...imgs]).then(() => document.fonts.ready).then(() => { window.renderAt(0); return true; });
+</script>
+</body>
+</html>
